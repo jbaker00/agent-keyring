@@ -24,7 +24,7 @@ step below is something the tool should do in one action:
 2. **Store it in GCP Secret Manager** without it appearing on screen:
    `pbpaste | gcloud secrets create NAME --data-file=- && pbcopy </dev/null`
 3. **Grant the reader access.** The pi5's service account
-   (`firebase-viewer@globalvibes-1a6aa`) is granted access per secret, so
+   (`reader@your-gcp-project`) is granted access per secret, so
    each new secret needs its own `add-iam-policy-binding`. This step was
    easy to forget.
 4. **Copy it into the macOS Keychain** as `creds:NAME`
@@ -42,8 +42,8 @@ The problems that made it a whole session, and that the tool should prevent:
   and the monitor skipped the 401 silently for weeks. The tool should know
   expiry dates and warn before them.
 - **A key in an account nobody remembered.** The Creole voice key lived in a
-  second OpenAI account (jbaker00@outlook.com) with $16 of prepaid credit.
-  `secrets.h` said "billing: jbaker00 acct", which was wrong. The tool's
+  second OpenAI account (you@example.com) with $16 of prepaid credit.
+  `secrets.h` said "billing: personal acct", which was wrong. The tool's
   inventory should record the *owning account* for every key, and it can
   check that automatically (an admin key can list the keys in its own
   account).
@@ -124,7 +124,7 @@ an API.
 ## Suggested first version (one weekend)
 
 A Python CLI plus an MCP server, Mac only:
-- `ak add NAME --stores keychain,gcp:globalvibes-1a6aa --grant firebase-viewer@… --account "openai:jbaker00@gmail.com" --expires 2027-01-01 --note "…"`
+- `ak add NAME --stores keychain,gcp:your-gcp-project --grant reader@… --account "openai:you@example.com" --expires 2027-01-01 --note "…"`
   reads the value from the clipboard, writes it to each store, confirms each
   copy, clears the clipboard, and appends to `~/.agent-keyring/inventory.json`
   (metadata only).
