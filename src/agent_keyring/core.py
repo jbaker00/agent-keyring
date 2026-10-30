@@ -50,13 +50,20 @@ class AgentKeyring:
     def get(self, key: str, scope: str | Scope = Scope.AUTO) -> str:
         scope = Scope(scope)
         if scope == Scope.AUTO:
+            unavailable: list[str] = []
             for s in (Scope.LOCAL, Scope.SHARED):
                 try:
                     v = self._backend(s).get(key)
-                except BackendUnavailableError:
+                except BackendUnavailableError as e:
+                    unavailable.append(str(e))
                     continue
                 if v is not None:
                     return v
+            if unavailable:
+                raise BackendUnavailableError(
+                    f"Secret {key!r} not found locally, and another store was "
+                    f"unavailable: {'; '.join(unavailable)}"
+                )
             raise SecretNotFoundError(f"Secret {key!r} not found (local or shared)")
         v = self._backend(scope).get(key)
         if v is None:

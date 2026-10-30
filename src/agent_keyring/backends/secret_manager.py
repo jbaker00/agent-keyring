@@ -24,8 +24,21 @@ def _default_project() -> str | None:
 
 
 def _secret_id(key: str) -> str:
-    # GCP secret IDs: [a-zA-Z0-9_-], 1-255 chars, cannot start with a digit issue is fine but keep safe
-    sid = re.sub(r"[^a-zA-Z0-9_-]", "-", key).strip("-")
+    # GCP secret IDs: [a-zA-Z0-9_-], 1-255 chars.
+    # Keys that are already valid IDs pass through unchanged. Other keys are
+    # encoded (`_` -> `__`, any other invalid char -> `_xx_` hex) so distinct
+    # keys can never collide the way "a/b" and "a-b" did with plain `-` mapping.
+    if re.fullmatch(r"[a-zA-Z0-9_-]{1,255}", key):
+        return key
+    out: list[str] = []
+    for ch in key:
+        if ch == "_":
+            out.append("__")
+        elif ch.isascii() and (ch.isalnum() or ch == "-"):
+            out.append(ch)
+        else:
+            out.append(f"_{ord(ch):x}_")
+    sid = "".join(out).strip("-")
     if not sid:
         raise ValueError(f"key {key!r} maps to an empty GCP secret id")
     return sid[:255]

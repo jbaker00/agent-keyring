@@ -49,6 +49,12 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write(kr.get(args.key, scope=args.scope))
             sys.stdout.write("\n")
         elif args.cmd == "set":
+            if args.value is not None:
+                print(
+                    "warning: passing the value as an argument exposes it in shell "
+                    "history and process listings; omit it to be prompted instead.",
+                    file=sys.stderr,
+                )
             value = args.value if args.value is not None else getpass.getpass(f"Value for {args.key!r}: ")
             kr.set(args.key, value, scope=args.scope)
             print(f"Stored {args.key!r} in {args.scope}.", file=sys.stderr)

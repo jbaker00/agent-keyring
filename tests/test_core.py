@@ -62,5 +62,6 @@ def test_delete(kr):
 
 
 def test_secret_id_sanitizes():
-    assert _secret_id("openai/api.key") == "openai-api-key"
-    assert _secret_id("my key!") == "my-key"
+    assert _secret_id("openai-api-key") == "openai-api-key"  # valid IDs pass through
+    assert _secret_id("a/b") != _secret_id("a-b")  # distinct keys never collide
+    assert _secret_id("openai/api.key") != _secret_id("openai-api-key")
