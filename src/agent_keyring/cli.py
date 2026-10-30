@@ -14,6 +14,46 @@ def _kr(args) -> AgentKeyring:
     return AgentKeyring(project=getattr(args, "project", None))
 
 
+def _gcloud(*argv: str) -> str:
+    try:
+        out = subprocess.run(["gcloud", *argv], capture_output=True, text=True, timeout=10)
+        return out.stdout.strip()
+    except Exception:
+        return ""
+
+
+def _doctor(args) -> int:
+    """Verify the own-account model: everything runs under the user's login."""
+    ok = True
+    try:
+        import keyring
+
+        print(f"local keychain : OK ({type(keyring.get_keyring()).__name__}, service 'agent-keyring')")
+    except Exception as e:
+        ok = False
+        print(f"local keychain : FAIL ({e})")
+    account = _gcloud("config", "get-value", "account")
+    project = getattr(args, "project", None) or _gcloud("config", "get-value", "project")
+    print(f"gcloud account : {account or 'NOT LOGGED IN — run: gcloud auth application-default login'}")
+    print(f"gcloud project : {project or 'NOT SET — run: gcloud config set project <YOUR_PROJECT>'}")
+    if not account or not project:
+        ok = False
+    else:
+        try:
+            from agent_keyring.backends.secret_manager import SecretManagerBackend
+
+            backend = SecretManagerBackend(project=project)
+            backend._client().list_secrets(request={"parent": backend._parent(), "page_size": 1})
+            print("secret manager : OK (API reachable with your credentials, IAM permits list)")
+        except Exception as e:
+            ok = False
+            print(f"secret manager : FAIL ({e})")
+            print("  fix: gcloud services enable secretmanager.googleapis.com "
+                  "and grant roles/secretmanager.admin on YOUR project")
+    print("model          : own-account — secrets live in YOUR keychain and YOUR GCP project")
+    return 0 if ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         prog="agent-keyring",
@@ -40,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--scope", choices=["local", "shared"], default="local")
 
     sub.add_parser("backends", help="List available backends")
+    sub.add_parser("doctor", help="Check local keychain + your own gcloud setup (no secrets printed)")
 
     args = p.parse_args(argv)
     kr = _kr(args)
@@ -75,6 +116,8 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "backends":
             for name in REGISTRY:
                 print(name)
+        elif args.cmd == "doctor":
+            return _doctor(args)
     except AgentKeyringError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
