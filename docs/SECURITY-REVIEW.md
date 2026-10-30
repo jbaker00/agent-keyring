@@ -20,7 +20,7 @@ Scope: Python core, CLI, Keychain backend, Secret Manager backend. Reviewer pass
 - **ADC credential file** (`~/.config/gcloud/application_default_credentials.json`) is plaintext on disk with broad `cloud-platform` scope. Mitigation is IAM least-privilege on the project, not file encryption. Enable Secret Manager **Data Access audit logs** in GCP if you need a read trail — off by default.
 - **Shared `set` adds a new version every time; old versions stay readable** until destroyed. Rotation therefore doesn't revoke the old value. A `--destroy-old-versions` option is future work.
 - **Local keychain has no read audit trail** on macOS for same-user access.
-- **No `list` in the Python layer.** `keyring` cannot enumerate items. The SwiftUI app must query the Security framework by service (`agent-keyring`) directly, and Secret Manager via `list_secrets`. Viewer design must not shell out to `security dump-keychain` (would expose unrelated passwords).
+- **Listing (updated after the swap work).** Python `list_keys` exists per store: Secret Manager enumerates via `list_secrets` (names only); the Keychain backend raises a clear error because the `keyring` API cannot enumerate — the SwiftUI app lists natively via the Security framework filtered to service `agent-keyring`. Never shell out to `security dump-keychain` (would expose unrelated passwords).
 
 ## Design constraints for the SwiftUI full-manager app
 
