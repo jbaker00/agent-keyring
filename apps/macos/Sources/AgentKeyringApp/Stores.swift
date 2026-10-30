@@ -21,7 +21,7 @@ enum StoreID: String, CaseIterable, Identifiable {
         switch self {
         case .local: return "This Mac only"
         case .shared: return "Synced via your gcloud login"
-        case .aws, .azure: return "Planned cloud backend"
+        case .aws, .azure: return "Backend ready — app wiring pending"
         default: return "Planned backend"
         }
     }

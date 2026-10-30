@@ -24,16 +24,6 @@ class _Stub:
         )
 
 
-class AwsSecretsManagerBackend(_Stub):
-    name = "aws-secrets-manager"
-    kind = "shared"
-
-
-class AzureKeyVaultBackend(_Stub):
-    name = "azure-key-vault"
-    kind = "shared"
-
-
 class OnePasswordBackend(_Stub):
     name = "onepassword"
     kind = "shared"
