@@ -35,10 +35,18 @@ struct ContentView: View {
                 .padding(8)
 
                 if state.store.implemented {
-                    List(state.filtered, selection: $state.selected) { row in
-                        Text(row.name).tag(row.name)
+                    if state.filtered.isEmpty {
+                        ContentUnavailableView(
+                            "No secrets yet",
+                            systemImage: "key.slash",
+                            description: Text("Click Add, or from Terminal: agent-keyring set <key> --scope \(state.store == .local ? "local" : "shared")")
+                        )
+                    } else {
+                        List(state.filtered, selection: $state.selected) { row in
+                            Text(row.name).tag(row.name)
+                        }
+                        .onChange(of: state.selected) { _, _ in state.revealed = nil }
                     }
-                    .onChange(of: state.selected) { _, _ in state.revealed = nil }
 
                     Divider()
                     GroupBox("Selected") {

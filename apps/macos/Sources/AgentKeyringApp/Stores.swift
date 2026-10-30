@@ -110,23 +110,57 @@ final class KeychainStore {
 /// IAM on the user's own project decides access. Secret values are
 /// passed on stdin, never argv, so they stay out of process listings.
 final class GCloudStore {
-    func gcloudPath() -> String {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let candidates = [
+    private var cachedPath: String?
+
+    /// GUI apps don't inherit the user's shell PATH, so search common SDK
+    /// locations, then PATH, then the login shell — never guess a path
+    /// that doesn't exist.
+    func gcloudPath() -> String? {
+        if let cachedPath { return cachedPath }
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser.path
+        var candidates = [
             "\(home)/google-cloud-sdk/bin/gcloud",
+            "\(home)/code/google-cloud-sdk/bin/gcloud",
             "/opt/homebrew/bin/gcloud", "/usr/local/bin/gcloud",
+            "/opt/google-cloud-sdk/bin/gcloud",
         ]
-        if let found = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
+        if let path = ProcessInfo.processInfo.environment["PATH"] {
+            candidates += path.split(separator: ":").map { "\($0)/gcloud" }
+        }
+        if let found = candidates.first(where: { fm.isExecutableFile(atPath: $0) }) {
+            cachedPath = found
             return found
         }
-        return "/usr/bin/gcloud"
+        // Last resort: ask the user's login shell where gcloud is.
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        p.arguments = ["-lc", "command -v gcloud"]
+        let pipe = Pipe()
+        p.standardOutput = pipe
+        p.standardError = Pipe()
+        if (try? p.run()) != nil {
+            p.waitUntilExit()
+            let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !out.isEmpty, fm.isExecutableFile(atPath: out) {
+                cachedPath = out
+                return out
+            }
+        }
+        return nil
     }
 
     @discardableResult
     func run(_ args: [String], stdin: String? = nil) async throws -> String {
-        try await withCheckedThrowingContinuation { cont in
+        guard let path = gcloudPath() else {
+            throw StoreError.message(
+                "gcloud not found. Install Google Cloud SDK, or run from Terminal once so the login shell can locate it."
+            )
+        }
+        return try await withCheckedThrowingContinuation { cont in
             let p = Process()
-            p.executableURL = URL(fileURLWithPath: gcloudPath())
+            p.executableURL = URL(fileURLWithPath: path)
             p.arguments = args
             let outPipe = Pipe(), errPipe = Pipe()
             p.standardOutput = outPipe
