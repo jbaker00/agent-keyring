@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agent-keyring"
+version = "0.1.0"
+description = "Paste-once secrets for humans and AI agents — local OS keychain + Google Cloud Secret Manager"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "keyring>=25.0",
+]
+
+[project.optional-dependencies]
+gcp = [
+    "google-cloud-secret-manager>=2.20",
+    "google-api-core>=2.0",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+agent-keyring = "agent_keyring.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_keyring"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
