@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Intentionally NOT sandboxed: the app must launch the user's own
+       gcloud/aws/az/oci CLIs and read their existing logins. A sandboxed
+       build cannot do that and is therefore not a supported configuration.
+       Keychain and Touch ID (LocalAuthentication) need no extra entitlement
+       for an unsandboxed macOS app; if sandboxing is ever required, add
+       keychain-access-groups here and re-architect cloud access around
+       direct REST + OAuth instead of subprocess CLIs. -->
+  <key>com.apple.security.app-sandbox</key><false/>
+</dict>
+</plist>

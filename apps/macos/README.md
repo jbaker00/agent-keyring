@@ -4,13 +4,28 @@ Native SwiftUI manager for the same stores the Python core uses. Secrets are nev
 
 ## Build & run
 
+**Xcode (preferred):** open `AgentKeyring.xcodeproj`, pick your signing team
+(Signing & Capabilities → Team; bundle ID `dev.agent-keyring.app`), then Run.
+Verify from CLI with:
+
+```bash
+xcodebuild -project apps/macos/AgentKeyring.xcodeproj -target AgentKeyring \
+  -configuration Release CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual build
+```
+
+**SwiftPM (headless fallback):**
+
 ```bash
 cd apps/macos
-swift build -c release
 ./make-app.sh          # assembles dist/AgentKeyring.app
 open dist/AgentKeyring.app
-# or, during development: swift run
 ```
+
+Signing/entitlements: `AgentKeyring.entitlements` deliberately sets
+`app-sandbox=false` — the app must spawn the user's own `gcloud`/`aws`/`az`/`oci`
+CLIs, which a sandbox forbids. Keychain and Touch ID need no extra entitlement
+in an unsandboxed macOS app. Before any App Store step this must be
+re-architected around direct REST + OAuth per `docs/SECURITY-REVIEW.md`.
 
 ## How each store works
 
