@@ -53,6 +53,7 @@ class SecretManagerBackend:
     """
 
     name = "secret-manager"
+    kind = "shared"
 
     def __init__(self, project: str | None = None):
         self.project = project or _default_project()
@@ -119,6 +120,14 @@ class SecretManagerBackend:
             return True
         except gexc.NotFound:
             return False
+
+    def list_keys(self) -> list[str]:
+        client = self._client()
+        parent = self._parent()
+        keys: list[str] = []
+        for secret in client.list_secrets(request={"parent": parent}):
+            keys.append(secret.name.rsplit("/", 1)[-1])
+        return sorted(keys)
 
     def edit_url(self, key: str | None = None) -> str | None:
         base = (

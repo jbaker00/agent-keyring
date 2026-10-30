@@ -16,6 +16,7 @@ class KeychainBackend:
     """
 
     name = "keychain"
+    kind = "local"
 
     def __init__(self, service: str = DEFAULT_SERVICE):
         self.service = service
@@ -41,6 +42,15 @@ class KeychainBackend:
             return False
         kr.delete_password(self.service, key)
         return True
+
+    def list_keys(self) -> list[str]:
+        # The `keyring` API cannot enumerate items. The SwiftUI app lists
+        # natively via the Security framework; CLI/Python callers get a
+        # clear error instead of a misleading empty list.
+        raise BackendUnavailableError(
+            "The Python keyring API cannot list keychain items. "
+            "Use the macOS app (native Security framework query) to browse local secrets."
+        )
 
     def edit_url(self, key: str | None = None) -> str | None:
         if platform.system() == "Darwin":

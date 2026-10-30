@@ -7,6 +7,7 @@ from agent_keyring.core import Scope
 
 class FakeBackend:
     name = "fake"
+    kind = "local"
 
     def __init__(self):
         self.store = {}
@@ -19,6 +20,9 @@ class FakeBackend:
 
     def delete(self, key):
         return self.store.pop(key, None) is not None
+
+    def list_keys(self):
+        return sorted(self.store)
 
     def edit_url(self, key=None):
         return "https://example.com/edit"
@@ -59,6 +63,34 @@ def test_delete(kr):
     kr.set("x", "y", scope="local")
     assert kr.delete("x", scope="local") is True
     assert kr.get_or_none("x", scope="local") is None
+
+
+def test_swap_backend_by_instance():
+    fake = FakeBackend()
+    k = AgentKeyring(local_backend=fake, shared_backend=fake)
+    k.set("s", "v", scope="shared")
+    assert k.get("s", scope="local") == "v"  # same swapped-in store serves both scopes
+    assert k.list_keys(scope="shared") == ["s"]
+    assert k.backend_name("local") == "fake"
+
+
+def test_swap_backend_by_env(monkeypatch):
+    monkeypatch.setenv("AGENT_KEYRING_SHARED_BACKEND", "onepassword")
+    k = AgentKeyring()
+    assert k.backend_name("shared") == "onepassword"
+    assert k.backend_name("local") == "keychain"  # default unchanged
+    with pytest.raises(Exception) as e:
+        k.get("x", scope="shared")
+    assert "not implemented" in str(e.value)
+
+
+def test_backends_info_metadata():
+    from agent_keyring import backends_info
+
+    info = {b["name"]: b for b in backends_info()}
+    assert info["keychain"] == {"name": "keychain", "kind": "local", "implemented": True}
+    assert info["secret-manager"]["kind"] == "shared"
+    assert info["onepassword"]["implemented"] is False
 
 
 def test_secret_id_sanitizes():

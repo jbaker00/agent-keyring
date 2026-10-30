@@ -5,13 +5,16 @@ import getpass
 import subprocess
 import sys
 
-from agent_keyring import AgentKeyring
-from agent_keyring.backends import REGISTRY
+from agent_keyring import AgentKeyring, backends_info
 from agent_keyring.errors import AgentKeyringError
 
 
 def _kr(args) -> AgentKeyring:
-    return AgentKeyring(project=getattr(args, "project", None))
+    return AgentKeyring(
+        project=getattr(args, "project", None),
+        local_backend=getattr(args, "local_backend", None),
+        shared_backend=getattr(args, "shared_backend", None),
+    )
 
 
 def _gcloud(*argv: str) -> str:
@@ -60,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         description="Secrets for humans and AI agents: local keychain + shared Secret Manager.",
     )
     p.add_argument("--project", help="GCP project for shared secrets (or AGENT_KEYRING_GCP_PROJECT)")
+    p.add_argument("--local-backend", help="Local store name (default keychain, or AGENT_KEYRING_LOCAL_BACKEND)")
+    p.add_argument("--shared-backend", help="Shared store name (default secret-manager, or AGENT_KEYRING_SHARED_BACKEND)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     g = sub.add_parser("get", help="Print a secret to stdout (for agents to capture)")
@@ -79,7 +84,10 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("key", nargs="?")
     e.add_argument("--scope", choices=["local", "shared"], default="local")
 
-    sub.add_parser("backends", help="List available backends")
+    lst = sub.add_parser("list", help="List keys in a store (names only, never values)")
+    lst.add_argument("--scope", choices=["local", "shared"], default="shared")
+
+    sub.add_parser("backends", help="List available backends (kind + status)")
     sub.add_parser("doctor", help="Check local keychain + your own gcloud setup (no secrets printed)")
 
     args = p.parse_args(argv)
@@ -113,9 +121,13 @@ def main(argv: list[str] | None = None) -> int:
                 subprocess.run(["open", "-a", target[4:]], check=False)
             elif target.startswith("http"):
                 subprocess.run(["open", target], check=False)
+        elif args.cmd == "list":
+            for key in kr.list_keys(scope=args.scope):
+                print(key)
         elif args.cmd == "backends":
-            for name in REGISTRY:
-                print(name)
+            for info in backends_info():
+                status = "ready" if info["implemented"] else "planned"
+                print(f"{info['name']:<18} kind={info['kind']:<7} {status}")
         elif args.cmd == "doctor":
             return _doctor(args)
     except AgentKeyringError as e:
