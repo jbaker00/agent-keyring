@@ -3,12 +3,14 @@ import LocalAuthentication
 import Security
 
 enum StoreID: String, CaseIterable, Identifiable {
-    case local, shared, onepassword, lastpass, chrome
+    case local, shared, aws, azure, onepassword, lastpass, chrome
     var id: String { rawValue }
     var title: String {
         switch self {
         case .local: return "Local Keychain"
         case .shared: return "Google Cloud (your project)"
+        case .aws: return "AWS Secrets Manager"
+        case .azure: return "Azure Key Vault"
         case .onepassword: return "1Password"
         case .lastpass: return "LastPass"
         case .chrome: return "Chrome Passwords"
@@ -19,6 +21,7 @@ enum StoreID: String, CaseIterable, Identifiable {
         switch self {
         case .local: return "This Mac only"
         case .shared: return "Synced via your gcloud login"
+        case .aws, .azure: return "Planned cloud backend"
         default: return "Planned backend"
         }
     }
@@ -41,7 +44,11 @@ enum StoreError: LocalizedError {
 /// This is why the app can list local secrets while the Python `keyring`
 /// API cannot — same login keychain, same items the CLI writes.
 final class KeychainStore {
-    static let service = "agent-keyring"
+    /// Keychain service name; overridable in Settings (`localService`).
+    static var service: String {
+        let v = UserDefaults.standard.string(forKey: "localService") ?? ""
+        return v.isEmpty ? "agent-keyring" : v
+    }
 
     private func baseQuery(_ account: String? = nil) -> [String: Any] {
         var q: [String: Any] = [
@@ -112,6 +119,19 @@ final class KeychainStore {
 final class GCloudStore {
     private var cachedPath: String?
 
+    /// Settings override (`gcloudPath`) wins; blank means auto-detect.
+    var configuredPath: String? {
+        let o = UserDefaults.standard.string(forKey: "gcloudPath") ?? ""
+        if !o.isEmpty, FileManager.default.isExecutableFile(atPath: o) { return o }
+        return gcloudPath()
+    }
+
+    /// Settings project (`gcpProject`) wins; blank means `gcloud config`.
+    var projectArgs: [String] {
+        let p = UserDefaults.standard.string(forKey: "gcpProject") ?? ""
+        return p.isEmpty ? [] : ["--project=\(p)"]
+    }
+
     /// GUI apps don't inherit the user's shell PATH, so search common SDK
     /// locations, then PATH, then the login shell — never guess a path
     /// that doesn't exist.
@@ -153,7 +173,7 @@ final class GCloudStore {
 
     @discardableResult
     func run(_ args: [String], stdin: String? = nil) async throws -> String {
-        guard let path = gcloudPath() else {
+        guard let path = configuredPath else {
             throw StoreError.message(
                 "gcloud not found. Install Google Cloud SDK, or run from Terminal once so the login shell can locate it."
             )
@@ -188,13 +208,13 @@ final class GCloudStore {
     }
 
     func list() async throws -> [String] {
-        let out = try await run(["secrets", "list", "--format=value(name)"])
+        let out = try await run(["secrets", "list", "--format=value(name)"] + projectArgs)
         return out.split(separator: "\n").map(String.init).sorted()
     }
 
     func get(_ key: String) async throws -> String? {
         do {
-            var v = try await run(["secrets", "versions", "access", "latest", "--secret=\(key)"])
+            var v = try await run(["secrets", "versions", "access", "latest", "--secret=\(key)"] + projectArgs)
             if v.hasSuffix("\n") { v.removeLast() }
             return v
         } catch StoreError.message(let m) where m.contains("NOT_FOUND") {
@@ -205,15 +225,15 @@ final class GCloudStore {
     func set(_ key: String, _ value: String) async throws {
         let exists = (try? await get(key)) != nil
         if !exists {
-            _ = try await run(["secrets", "create", key, "--replication-policy=automatic"])
+            _ = try await run(["secrets", "create", key, "--replication-policy=automatic"] + projectArgs)
         }
-        _ = try await run(["secrets", "versions", "add", key, "--data-file=-"], stdin: value)
+        _ = try await run(["secrets", "versions", "add", key, "--data-file=-"] + projectArgs, stdin: value)
     }
 
     @discardableResult
     func delete(_ key: String) async throws -> Bool {
         do {
-            _ = try await run(["secrets", "delete", key, "--quiet"])
+            _ = try await run(["secrets", "delete", key, "--quiet"] + projectArgs)
             return true
         } catch StoreError.message(let m) where m.contains("NOT_FOUND") {
             return false

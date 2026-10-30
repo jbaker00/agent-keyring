@@ -31,6 +31,7 @@ struct ContentView: View {
                     Button("Delete", role: .destructive) { Task { await state.deleteSelected() } }
                         .disabled(state.selected == nil)
                     Button("Open editor") { state.openEditor() }
+                    SettingsLink { Image(systemName: "gearshape") }
                 }
                 .padding(8)
 
@@ -115,6 +116,9 @@ struct AgentKeyringApp: App {
         WindowGroup("Agent Keyring") {
             ContentView()
                 .frame(minWidth: 760, minHeight: 460)
+        }
+        Settings {
+            SettingsView()
         }
     }
 }

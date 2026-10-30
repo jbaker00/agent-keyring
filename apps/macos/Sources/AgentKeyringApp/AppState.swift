@@ -16,6 +16,16 @@ final class AppState: ObservableObject {
     private let local = KeychainStore()
     private let shared = GCloudStore()
 
+    init() {
+        let d = UserDefaults.standard.string(forKey: "defaultStore") ?? ""
+        if d == "shared" { store = .shared }
+    }
+
+    var clipboardSeconds: Int {
+        let v = UserDefaults.standard.integer(forKey: "clipboardSeconds")
+        return v > 0 ? v : 30
+    }
+
     var filtered: [SecretRow] {
         search.isEmpty ? rows : rows.filter { $0.name.localizedCaseInsensitiveContains(search) }
     }
@@ -62,10 +72,10 @@ final class AppState: ObservableObject {
         guard let revealed else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(revealed, forType: .string)
-        status = "Copied. Clipboard clears in 30 seconds."
+        status = "Copied. Clipboard clears in \(clipboardSeconds) seconds."
         let snapshot = revealed
         Task {
-            try? await Task.sleep(nanoseconds: 30_000_000_000)
+            try? await Task.sleep(nanoseconds: UInt64(clipboardSeconds) * 1_000_000_000)
             if NSPasteboard.general.string(forType: .string) == snapshot {
                 NSPasteboard.general.clearContents()
             }

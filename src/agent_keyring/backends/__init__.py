@@ -4,6 +4,8 @@ from typing import Any
 
 from agent_keyring.backends.base import SecretBackend
 from agent_keyring.backends.future import (
+    AwsSecretsManagerBackend,
+    AzureKeyVaultBackend,
     ChromePasswordBackend,
     LastPassBackend,
     OnePasswordBackend,
@@ -15,6 +17,8 @@ from agent_keyring.errors import BackendUnavailableError
 REGISTRY: dict[str, type] = {
     "keychain": KeychainBackend,
     "secret-manager": SecretManagerBackend,
+    "aws-secrets-manager": AwsSecretsManagerBackend,
+    "azure-key-vault": AzureKeyVaultBackend,
     "onepassword": OnePasswordBackend,
     "lastpass": LastPassBackend,
     "chrome-passwords": ChromePasswordBackend,
@@ -24,6 +28,8 @@ REGISTRY: dict[str, type] = {
 BACKEND_INFO: dict[str, dict[str, Any]] = {
     "keychain": {"kind": "local", "implemented": True},
     "secret-manager": {"kind": "shared", "implemented": True},
+    "aws-secrets-manager": {"kind": "shared", "implemented": False},
+    "azure-key-vault": {"kind": "shared", "implemented": False},
     "onepassword": {"kind": "shared", "implemented": False},
     "lastpass": {"kind": "shared", "implemented": False},
     "chrome-passwords": {"kind": "local", "implemented": False},
@@ -53,6 +59,8 @@ __all__ = [
     "SecretBackend",
     "KeychainBackend",
     "SecretManagerBackend",
+    "AwsSecretsManagerBackend",
+    "AzureKeyVaultBackend",
     "OnePasswordBackend",
     "LastPassBackend",
     "ChromePasswordBackend",
