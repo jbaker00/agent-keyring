@@ -7,6 +7,8 @@ APP="dist/AgentKeyring.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN" "$APP/Contents/MacOS/AgentKeyringApp"
+mkdir -p "$APP/Contents/Resources"
+cp AgentKeyring.icns "$APP/Contents/Resources/AgentKeyring.icns" 2>/dev/null || true
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -17,6 +19,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleName</key><string>Agent Keyring</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleIconFile</key><string>AgentKeyring</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSHighResolutionCapable</key><true/>
 </dict>

@@ -1,0 +1,1 @@
+api key,password,keychain,secrets,developer,credentials,gcloud,aws,azure,oci,agent,token,vault

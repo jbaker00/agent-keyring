@@ -1,0 +1,1 @@
+New: AWS Secrets Manager, Azure Key Vault, and OCI Vault join Google Cloud behind one swap. Paste a key once — agents fetch it by name, never from .env.

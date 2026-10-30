@@ -1,0 +1,20 @@
+Paste a password or API key once. Your AI agents fetch it by name — never from a plaintext .env file again.
+
+Agent Keyring gives humans and agents one place for secrets, backed by stores you already own:
+
+• LOCAL: this Mac's Keychain, for machine-only tokens that never leave the device.
+• SHARED: your own Google Cloud Secret Manager project, so keys follow you across machines under your IAM. AWS Secrets Manager, Azure Key Vault, and OCI Vault plug into the same interface.
+
+FOR AGENTS
+One call from Python or the CLI returns a secret in memory: AgentKeyring().get("openai-api-key"). No files to scrape, no keys in prompts, no secrets committed to git by accident.
+
+FOR HUMANS
+A native macOS app and CLI to add, edit, and delete secrets. Lists show names only; reveal requires Touch ID, and copied values clear themselves from the clipboard. Settings let you point at your own gcloud install and project.
+
+YOUR ACCOUNTS, YOUR STORES
+There is no Agent Keyring server. Everything runs under your OS login and your own cloud accounts. agent-keyring doctor verifies your keychain, cloud login, and IAM permissions — printing no secrets — before you trust it with real keys.
+
+OPEN AND HONEST
+Free and MIT-licensed, with its security review published in the repo. The headline limit, stated plainly: Agent Keyring removes plaintext secrets from files and prompts; it cannot protect against malicious code already running as your user.
+
+Requires macOS 14 or later. Shared Google features require a Google Cloud account; AWS/Azure/OCI features require those accounts and CLIs.
